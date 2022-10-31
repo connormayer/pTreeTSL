@@ -1,3 +1,12 @@
+from dataclasses import dataclass
+import random
+
+@dataclass
+class Word:
+    form: str
+    features: set
+
+
 class Tree():
     def __init__(self, label, features, children=None):
         # Name of node
@@ -42,6 +51,50 @@ class Tree():
                 projected_child
                 for child in self.children
                 for projected_child in child.project(target_features)
+            ]
+
+    def p_project(self, feature_probs, label_probs):
+        # assumes all probabilities 0 < p < 1
+        # and assumes only one relevant feature or label will be in the matrix at one time
+        '''
+        :param feature_probs: dictionary of features and probability to project
+        :param label_probs: dictionary of labels and probability to project
+        :return: Tree()
+        '''
+
+        if self.label in label_probs:
+            x = random.random()
+            if x < label_probs[self.label]:
+                return [
+                    Tree(
+                        label=self.label,
+                        features=self.features,
+                        children=[
+                            projected_child
+                            for child in self.children
+                            for projected_child in child.p_project(feature_probs, label_probs)
+                        ]
+                    )]
+
+        for feature in self.features:
+            if feature in feature_probs:
+                x = random.random()
+                if x < feature_probs[feature]:
+                    return [
+                        Tree(
+                            label = self.label,
+                            features = self.features,
+                            children = [
+                                projected_child
+                                for child in self.children
+                                for projected_child in child.p_project(feature_probs, label_probs)
+                            ]
+                        )]
+        else:
+            return [
+                projected_child
+                for child in self.children
+                for projected_child in child.p_project(feature_probs, label_probs)
             ]
 
 # TODO: Implement grammar
