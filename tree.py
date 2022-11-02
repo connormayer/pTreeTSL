@@ -185,6 +185,18 @@ class Tree():
                 for projected_child in child.p_project(feature_probs, label_probs)
             ]
 
+# Sample projection dictionaries with lexically-specific probabilities possible
+default_projections = {
+    'wh+': 1,
+    'wh-': 1,
+    'C': 0
+}
+
+project_dict = defaultdict(lambda: default_projections)
+project_dict['because'] = {
+    'C': 0.4
+}
+
 def check_wh(tree):
     """
     SL-2 function for checking for wh feature violations

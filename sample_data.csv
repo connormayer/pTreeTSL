@@ -1,0 +1,3 @@
+"did(eT(ev(John(),complain(that(eT(ev(Mary(),bought(which(car())))))))))", 1
+"did(eT(ev(John(),complain(that(eT(ev(Mary(),bought(the(car())))))))))", 0
+"did(eT(ev(John(),complain(because(eT(ev(Mary(),bought(which(car())))))))))", 0.7
