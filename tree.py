@@ -2,6 +2,7 @@ import pyparsing as pp
 import random
 from collections import defaultdict
 from dataclasses import dataclass
+import warnings
 
 @dataclass
 class Word:
@@ -94,6 +95,21 @@ class Tree():
         """
         return sum(feature in child.features for child in self.children)
 
+    def get_probs(self, feature_dict: defaultdict):
+        '''
+        :param feature_dict: default dictionary of feature (str): probabilities (float)
+        :return: probability (float)
+        '''
+
+        if len(set(feature_dict[self.label]).intersection(self.features))>1:
+            warnings.warn("Multiple matching features in {}".format(self))
+
+        for feature, prob in feature_dict[self.label].items():
+            if feature in self.features:
+                return prob
+
+
+
     @classmethod
     def from_str(cls, string, feature_dict):
         """
@@ -184,6 +200,48 @@ class Tree():
                 for child in self.children
                 for projected_child in child.p_project(feature_probs, label_probs)
             ]
+
+
+class Grammar:
+    def __init__(self, functions: list, feature_dict: defaultdict):
+        '''
+        :param functions: list of functions to check projected trees with
+        :param feature_dict: (maybe here, maybe int trees?) default dictionary of probabilities
+        '''
+
+        self.functions = functions
+        self.feature_dict = feature_dict
+
+    def is_grammatical(self, tree: Tree):
+        return all([tree.check_well_formed(f) for f in self.functions])
+
+    # under construction, adapting from Connor's pTSL paper
+    def projection_p(self, tree: Tree, feature_dict: defaultdict):
+        # base case
+        if not tree.children:
+            prob = tree.get_probs(feature_dict)
+            return [(tree, prob), (None, 1-prob)]
+
+        # probability of being projected, function TBD
+        prob = tree.get_probs(feature_dict)
+        projections = [projection for child in tree.children for projection in self.projection_p(child, feature_dict)]
+
+        new_projections = []
+        for proj, val in projections:
+            new_projections.append((Tree(tree.label, tree.features, children=proj), prob * val))
+            new_projections.append((proj, (1 - prob) * val))
+        return new_projections
+
+    def p_grammatical(self, tree: Tree, feature_dict: defaultdict):
+        return sum([prob for proj, prob in self.projection_p(tree, feature_dict) if self.is_grammatical(proj)])
+
+
+
+
+
+    #
+
+
 
 # Sample projection dictionaries with lexically-specific probabilities possible
 default_projections = {
