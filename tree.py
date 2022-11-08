@@ -95,18 +95,19 @@ class Tree():
         """
         return sum(feature in child.features for child in self.children)
 
-    def get_probs(self, feature_dict: defaultdict):
+    def get_probs(self, feature_dict: dict):
         '''
         :param feature_dict: default dictionary of feature (str): probabilities (float)
         :return: probability (float)
         '''
 
         if len(set(feature_dict[self.label]).intersection(self.features))>1:
-            warnings.warn("Multiple matching features in {}".format(self))
+            warnings.warn("Multiple matching features.")
 
         for feature, prob in feature_dict[self.label].items():
             if feature in self.features:
                 return prob
+        return 0
 
 
 
@@ -203,10 +204,10 @@ class Tree():
 
 
 class Grammar:
-    def __init__(self, functions: list, feature_dict: defaultdict):
+    def __init__(self, functions: list, feature_dict: dict):
         '''
         :param functions: list of functions to check projected trees with
-        :param feature_dict: (maybe here, maybe int trees?) default dictionary of probabilities
+        :param feature_dict: (maybe here, maybe in trees?) default dictionary of probabilities
         '''
 
         self.functions = functions
@@ -216,39 +217,50 @@ class Grammar:
         return all([tree.check_well_formed(f) for f in self.functions])
 
     # under construction, adapting from Connor's pTSL paper
-    def projection_p(self, tree: Tree, feature_dict: defaultdict):
+    def projection_p(self, tree: Tree, feature_dict: dict):
         # base case
         if not tree.children:
             prob = tree.get_probs(feature_dict)
-            return [(tree, prob), (None, 1-prob)]
+            return [(proj, prob) for proj, prob in [([tree], prob), ([], 1-prob)] if prob != 0]
 
         # probability of being projected, function TBD
         prob = tree.get_probs(feature_dict)
-        projections = [projection for child in tree.children for projection in self.projection_p(child, feature_dict)]
+        sub_projections = [self.projection_p(child, feature_dict) for child in tree.children]
+        projections = Grammar.projection_powerset(sub_projections)
+        #print(projections)
 
         new_projections = []
         for proj, val in projections:
-            new_projections.append((Tree(tree.label, tree.features, children=proj), prob * val))
+            new_projections.append(([Tree(tree.label, tree.features, children=proj)], prob * val))
             new_projections.append((proj, (1 - prob) * val))
         return new_projections
 
-    def p_grammatical(self, tree: Tree, feature_dict: defaultdict):
-        return sum([prob for proj, prob in self.projection_p(tree, feature_dict) if self.is_grammatical(proj)])
+    def p_grammatical(self, tree: Tree, feature_dict: dict):
+        return sum([prob for proj, prob in self.projection_p(tree, feature_dict) if self.is_grammatical(*proj)])
 
+    @staticmethod
+    def projection_powerset(child_projections):
+        first, *rest = child_projections
+        if not rest:
+            return first
+        projections_powerset = []
+        for r_projection in Grammar.projection_powerset(rest):
+            for f_projection in first:
+                projections_powerset.append((f_projection[0]+r_projection[0], f_projection[1]*r_projection[1]))
+        return [(projection, prob) for projection, prob in projections_powerset if prob != 0]
 
-
-
-
-    #
 
 
 
 # Sample projection dictionaries with lexically-specific probabilities possible
-default_projections = {
+
+default_projections = defaultdict(lambda: 0)
+
+default_projections.update({
     'wh+': 1,
     'wh-': 1,
     'C': 0
-}
+})
 
 project_dict = defaultdict(lambda: default_projections)
 project_dict['because'] = {
@@ -310,7 +322,7 @@ good_tree = Tree(
                                                                         features = set(['D', 'wh-']),
                                                                         children = [
                                                                             Tree(
-                                                                                label = ['car'],
+                                                                                label = 'car',
                                                                                 features = set(['N'])
                                                                             )
                                                                         ]
@@ -354,7 +366,7 @@ bad_tree = Tree(
                                 children = [
                                     Tree(
                                         label = 'because',
-                                        features = set(['C1']),
+                                        features = set(['C']),
                                         children = [
 
                                             Tree(
@@ -378,7 +390,7 @@ bad_tree = Tree(
                                                                         features = set(['D', 'wh-']),
                                                                         children = [
                                                                             Tree(
-                                                                                label = ['car'],
+                                                                                label = 'car',
                                                                                 features = set(['N'])
                                                                             )
                                                                         ]
@@ -469,6 +481,10 @@ bad_tree_str = """
     )"""
 good_parsed_tree = Tree.from_str(good_tree_str, feature_dict)
 bad_parsed_tree = Tree.from_str(bad_tree_str, feature_dict)
+grammar = Grammar([check_wh], feature_dict)
 
 print(good_parsed_tree.project(set(['wh-', 'wh+', 'C1'])).check_well_formed(check_wh))
 print(bad_parsed_tree.project(set(['wh-', 'wh+', 'C1'])).check_well_formed(check_wh))
+print(grammar.p_grammatical(bad_tree, project_dict))
+print(grammar.p_grammatical(good_tree, project_dict))
+
