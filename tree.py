@@ -308,7 +308,7 @@ class SL2_Grammar:
         if not rest:
             return first
         projections_powerset = []
-        for r_projection in Grammar.projection_powerset(rest):
+        for r_projection in SL2_Grammar.projection_powerset(rest):
             # for all the other projections in the recursive call 'projection_powerset(rest)'
             for f_projection in first:
                 # for all the projections currently being evaluated 'first'
