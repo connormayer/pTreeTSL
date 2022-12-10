@@ -236,7 +236,7 @@ class SL2_Grammar:
         # probability of being projected, function to be tweaked
         prob = tree.get_probs(feature_dict)
         sub_projections = [self.projection_p(child, feature_dict) for child in tree.children]
-        possible_children = Grammar.child_product(sub_projections)
+        possible_children = SL2_Grammar.child_product(sub_projections)
 
         new_children = []
         for children, val in possible_children:
@@ -246,39 +246,43 @@ class SL2_Grammar:
             new_children.append((children, (1 - prob) * val))
         return new_children
 
-    def evaluate_proj(self, proj_probs, param, corpus_probs):
-        # to edit
+    def evaluate_proj(self, proj_probs, params, corpus_probs):
+        '''
+        :param proj_probs: Tuple(float) probabilities in tuple equal length(params)
+        :param params: List(Str) Keys for feature_dict
+        :param corpus_probs: Tuple(Tree, float) trees and their acceptability/grammaticality probability
+        :return:
+        '''
+        for i, param in enumerate(params):
+            self.feature_dict[param] = proj_probs[i]
+
         sse = 0
         for tree, p in corpus_probs:
             sse += (self.p_grammatical(tree, self.feature_dict) - p)**2
 
         return sse
 
-    def train(self, corpus_file):
-        # to edit
-        corpus_probs = self.read_corpus_file(corpus_file, True)
-        # get list of tiers
-        # from initialized ptsl (self.probs and self.factor) and corpus data, create complete list of alphabet
-        param = {x for sublist in corpus_probs for x in sublist[0]}
-        # remove fixed alphabets
-        param = list(param - {x for x in self.probs})
+    def train(self, corpus_file, free_params):
+        '''
+        :param corpus_file: Str, location of corpus_file
+        :param free_params: List(Str), dictionary keys from feature_dict whose probabilities will be optimized
+        :return:
+        '''
 
-        # if param is empty, meaning no free projection parameters
-        if not param:
-            raise ValueError('There are no free projection parameters in the tier input file')
+        corpus_probs = self.read_corpus_file(corpus_file, True)
 
         # create bounds
         # instead of limiting bound for fixed value, I removed it completely from the parameter
-        bounds = [(0, 1) for i in range(len(param))]
+        bounds = [(0, 1) for _ in range(len(free_params))]
 
         # randomly initialize parameter - this will be the input
-        proj_probs = rand(len(param))
+        proj_probs = rand(len(free_params))
         # run the minimize function
         proj_res = minimize(self.evaluate_proj,
                             proj_probs,
                             bounds=bounds,
                             method='L-BFGS-B',
-                            args=(param, corpus_probs))
+                            args=(free_params, corpus_probs))
 
     def p_grammatical(self, tree: Tree, feature_dict: dict):
         '''
@@ -321,7 +325,7 @@ def read_corpus_file(corpus_file):
     '''
     with open(corpus_file) as file:
         reader = csv.reader(file)
-        corpus = [(row[0], row[1]) for row  in reader]
+        corpus = [(row[0], row[1]) for row in reader]
 
     return corpus
 
