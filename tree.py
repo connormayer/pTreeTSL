@@ -1,5 +1,8 @@
 import pyparsing as pp
 import random
+import csv
+from numpy.random import rand
+from scipy.optimize import minimize
 from collections import defaultdict
 from dataclasses import dataclass
 import warnings
@@ -203,11 +206,12 @@ class Tree():
             ]
 
 
-class Grammar:
+class SL2_Grammar:
     def __init__(self, functions: list, feature_dict: dict):
         '''
         :param functions: list of functions to check projected trees with
         :param feature_dict: (maybe here, maybe in trees?) default dictionary of probabilities
+        may need to be edited with changes to feature representation and projection
         '''
 
         self.functions = functions
@@ -235,6 +239,40 @@ class Grammar:
             new_projections.append((proj, (1 - prob) * val))
         return new_projections
 
+    def evaluate_proj(self, proj_probs, param, corpus_probs):
+        # to edit
+        sse = 0
+        for tree, p in corpus_probs:
+            sse += (self.p_grammatical(tree, self.feature_dict) - p)**2
+
+        return sse
+
+    def train(self, corpus_file):
+        # to edit
+        corpus_probs = self.read_corpus_file(corpus_file, True)
+        # get list of tiers
+        # from initialized ptsl (self.probs and self.factor) and corpus data, create complete list of alphabet
+        param = {x for sublist in corpus_probs for x in sublist[0]}
+        # remove fixed alphabets
+        param = list(param - {x for x in self.probs})
+
+        # if param is empty, meaning no free projection parameters
+        if not param:
+            raise ValueError('There are no free projection parameters in the tier input file')
+
+        # create bounds
+        # instead of limiting bound for fixed value, I removed it completely from the parameter
+        bounds = [(0, 1) for i in range(len(param))]
+
+        # randomly initialize parameter - this will be the input
+        proj_probs = rand(len(param))
+        # run the minimize function
+        proj_res = minimize(self.evaluate_proj,
+                            proj_probs,
+                            bounds=bounds,
+                            method='L-BFGS-B',
+                            args=(param, corpus_probs))
+
     def p_grammatical(self, tree: Tree, feature_dict: dict):
         return sum([prob for proj, prob in self.projection_p(tree, feature_dict) if self.is_grammatical(*proj)])
 
@@ -250,6 +288,16 @@ class Grammar:
         return [(projection, prob) for projection, prob in projections_powerset if prob != 0]
 
 
+def read_corpus_file(corpus_file):
+    '''
+    :param corpus_file: string specifying location of .csv file
+    :return: list of (Tree, probability) tuples
+    '''
+    with open(corpus_file) as file:
+        reader = csv.reader(file)
+        corpus = [(row[0], row[1]) for row  in reader]
+
+    return corpus
 
 
 # Sample projection dictionaries with lexically-specific probabilities possible
