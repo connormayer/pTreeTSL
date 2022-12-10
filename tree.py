@@ -102,6 +102,7 @@ class Tree():
         '''
         :param feature_dict: default dictionary of feature (str): probabilities (float)
         :return: probability (float)
+        likely to be tweaked
         '''
 
         if len(set(feature_dict[self.label]).intersection(self.features))>1:
@@ -222,22 +223,28 @@ class SL2_Grammar:
 
     # under construction, adapting from Connor's pTSL paper
     def projection_p(self, tree: Tree, feature_dict: dict):
+        '''
+        :param tree: Tree
+        :param feature_dict: dictionary of features and projection probabilities
+        :return: List(Tuple(Tree, float)), list of projections and their probabilities
+        '''
         # base case
         if not tree.children:
             prob = tree.get_probs(feature_dict)
             return [(proj, prob) for proj, prob in [([tree], prob), ([], 1-prob)] if prob != 0]
 
-        # probability of being projected, function TBD
+        # probability of being projected, function to be tweaked
         prob = tree.get_probs(feature_dict)
         sub_projections = [self.projection_p(child, feature_dict) for child in tree.children]
-        projections = Grammar.projection_powerset(sub_projections)
-        #print(projections)
+        possible_children = Grammar.child_product(sub_projections)
 
-        new_projections = []
-        for proj, val in projections:
-            new_projections.append(([Tree(tree.label, tree.features, children=proj)], prob * val))
-            new_projections.append((proj, (1 - prob) * val))
-        return new_projections
+        new_children = []
+        for children, val in possible_children:
+            # projections including node and all possible projected children
+            new_children.append(([Tree(tree.label, tree.features, children=children)], prob * val))
+            # projections without node
+            new_children.append((children, (1 - prob) * val))
+        return new_children
 
     def evaluate_proj(self, proj_probs, param, corpus_probs):
         # to edit
@@ -274,17 +281,36 @@ class SL2_Grammar:
                             args=(param, corpus_probs))
 
     def p_grammatical(self, tree: Tree, feature_dict: dict):
+        '''
+        :param tree: Tree to check
+        :param feature_dict: Features to project
+        :return: Probability tree is grammatical under this instantiation of grammar
+        Will need rewriting, must correct case where top node does not project, but need to clarify how to treat top
+        node
+        '''
         return sum([prob for proj, prob in self.projection_p(tree, feature_dict) if self.is_grammatical(*proj)])
 
     @staticmethod
-    def projection_powerset(child_projections):
+    def child_product(child_projections):
+        '''
+        Returns all possible combinations of child projections
+        :param child_projections: list of tuples List(Tuple(Tree, float)) of children projections and probs
+        :return: List(Tuple(List(Tree), float)) new list of (children, probability) tuples of possible children the
+        parent node has to worry about and their probability
+        '''
+
         first, *rest = child_projections
+        # base case, return list
         if not rest:
             return first
         projections_powerset = []
         for r_projection in Grammar.projection_powerset(rest):
+            # for all the other projections in the recursive call 'projection_powerset(rest)'
             for f_projection in first:
+                # for all the projections currently being evaluated 'first'
+                # make a new projection/probability pair which is the two lists appended and their probs multiplied
                 projections_powerset.append((f_projection[0]+r_projection[0], f_projection[1]*r_projection[1]))
+        # remove 0 prob projections to prevent wasteful memory usage
         return [(projection, prob) for projection, prob in projections_powerset if prob != 0]
 
 
