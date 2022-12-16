@@ -209,6 +209,7 @@ class Tree():
 
 class SL2_Grammar:
     def __init__(self, functions: list, feature_dict: dict):
+        # needs final edits for how features will be loaded
         '''
         :param functions: list of functions to check projected trees with
         :param feature_dict: (maybe here, maybe in trees?) default dictionary of probabilities
@@ -248,6 +249,7 @@ class SL2_Grammar:
 
     def evaluate_proj(self, proj_probs, params, corpus_probs):
         '''
+        Straightforward adaptation from Connor's pTSL code
         :param proj_probs: Tuple(float) probabilities in tuple equal length(params)
         :param params: List(Str) Keys for feature_dict
         :param corpus_probs: Tuple(Tree, float) trees and their acceptability/grammaticality probability
@@ -264,6 +266,7 @@ class SL2_Grammar:
 
     def train(self, corpus_file, free_params):
         '''
+        Straightforward adaptation from Connor's pTSL code
         :param corpus_file: Str, location of corpus_file
         :param free_params: List(Str), dictionary keys from feature_dict whose probabilities will be optimized
         :return:
