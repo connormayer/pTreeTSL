@@ -100,18 +100,27 @@ class Tree():
 
     def get_probs(self, feature_dict: dict):
         '''
-        :param feature_dict: default dictionary of feature (str): probabilities (float)
+        Currently set to work for the case where each feature set contains a single item
+        :param feature_dict: dictionary of feature (str): probabilities (float)
         :return: probability (float)
         likely to be tweaked
         '''
 
-        if len(set(feature_dict[self.label]).intersection(self.features))>1:
-            warnings.warn("Multiple matching features.")
+        #if len(set(proj_dict[self.label]).intersection(self.features))>1:
+        #    warnings.warn("Multiple matching features.")
 
-        for feature, prob in feature_dict[self.label].items():
+        for feature, prob in feature_dict.items():
             if feature in self.features:
                 return prob
         return 0
+
+    def get_all_features(self):
+        '''
+        :return: returns Set of all features contained in the Tree
+        '''
+        if not self.children:
+            return self.features
+        return self.features.union(*[child.get_all_features for child in self.children])
 
 
 
@@ -119,7 +128,7 @@ class Tree():
     def from_str(cls, string, feature_dict):
         """
         Reads in a string representation of a tree and constructs a tree
-        object. feature_dict is used to map node names to features.
+        object. proj_dict is used to map node names to features.
         """
         lpar = pp.Suppress('(')
         rpar = pp.Suppress(')')
@@ -142,7 +151,11 @@ class Tree():
         Recursively builds a tree from a pyparsing parse
         """
         parent, *children = parse
-        features = feature_dict[parent]
+        # handling for uncoded features
+        if parent in feature_dict:
+            features = feature_dict[parent]
+        else:
+            features = {parent}
 
         if not children:
             tree = Tree(
@@ -164,7 +177,7 @@ class Tree():
 
     def p_project(self, feature_probs, label_probs):
         # assumes all probabilities 0 < p < 1
-        # and assumes only one relevant feature or label will be in the matrix at one time
+        # and assumes only one feature in the set for now
         '''
         :param feature_probs: dictionary of features and probability to project
         :param label_probs: dictionary of labels and probability to project
@@ -207,72 +220,87 @@ class Tree():
             ]
 
 
-class SL2_Grammar:
-    def __init__(self, functions: list, feature_dict: dict):
+class TSL2_Grammar:
+    def __init__(self, functions: list, proj_dict: dict):
         # needs final edits for how features will be loaded
         '''
         :param functions: list of functions to check projected trees with
-        :param feature_dict: (maybe here, maybe in trees?) default dictionary of probabilities
+        :param proj_dict: dictionary of probabilities
         may need to be edited with changes to feature representation and projection
         '''
 
         self.functions = functions
-        self.feature_dict = feature_dict
+        self.proj_dict = proj_dict
 
     def is_grammatical(self, tree: Tree):
         return all([tree.check_well_formed(f) for f in self.functions])
 
-    # under construction, adapting from Connor's pTSL paper
-    def projection_p(self, tree: Tree, feature_dict: dict):
+    def projection_p(self, tree: Tree):
         '''
         :param tree: Tree
-        :param feature_dict: dictionary of features and projection probabilities
+        :return: List(Tuple(Tree, float)), list of projections and their probabilities
+        '''
+        return [(Tree(label="TOP_FISH", features={"TOP_FISH"}, children=proj), prob) for
+                proj, prob in self.projection_p_helper(tree)]
+
+    def projection_p_helper(self, tree: Tree):
+        '''
+        :param tree: Tree
         :return: List(Tuple(Tree, float)), list of projections and their probabilities
         '''
         # base case
         if not tree.children:
-            prob = tree.get_probs(feature_dict)
+            prob = tree.get_probs(self.proj_dict)
             return [(proj, prob) for proj, prob in [([tree], prob), ([], 1-prob)] if prob != 0]
 
         # probability of being projected, function to be tweaked
-        prob = tree.get_probs(feature_dict)
-        sub_projections = [self.projection_p(child, feature_dict) for child in tree.children]
-        possible_children = SL2_Grammar.child_product(sub_projections)
+        prob = tree.get_probs(self.proj_dict)
+        sub_projections = [self.projection_p_helper(child) for child in tree.children]
+        possible_children = TSL2_Grammar.child_product(sub_projections)
 
         new_children = []
         for children, val in possible_children:
             # projections including node and all possible projected children
-            new_children.append(([Tree(tree.label, tree.features, children=children)], prob * val))
+            if prob != 0:
+                new_children.append(([Tree(tree.label, tree.features, children=children)], prob * val))
             # projections without node
-            new_children.append((children, (1 - prob) * val))
+            if prob != 1:
+                new_children.append((children, (1 - prob) * val))
         return new_children
 
-    def evaluate_proj(self, proj_probs, params, corpus_probs):
+    def evaluate_proj(self, proj_probs, params, corpus_probs, prior, beta):
+        # may be rewritten to use a more motivated method than sse
         '''
         Straightforward adaptation from Connor's pTSL code
         :param proj_probs: Tuple(float) probabilities in tuple equal length(params)
-        :param params: List(Str) Keys for feature_dict
+        :param params: List(Str) Keys for proj_dict
         :param corpus_probs: Tuple(Tree, float) trees and their acceptability/grammaticality probability
+        :param prior: scipy.stats.beta, a prior on the bernoulli RVs
+        :param beta: float, regularization penalty
         :return:
         '''
         for i, param in enumerate(params):
-            self.feature_dict[param] = proj_probs[i]
+            self.proj_dict[param] = proj_probs[i]
 
         sse = 0
         for tree, p in corpus_probs:
-            sse += (self.p_grammatical(tree, self.feature_dict) - p)**2
+            sse += (self.p_grammatical(tree) - p)**2 + beta*prior.pdf(p)
 
         return sse
 
-    def train(self, corpus_file, free_params):
+    def train(self, corpus_file, feature_file, free_params, prior, beta):
         '''
         Straightforward adaptation from Connor's pTSL code
         :param corpus_file: Str, location of corpus_file
-        :param free_params: List(Str), dictionary keys from feature_dict whose probabilities will be optimized
+        :param feature_file: Str, location of feature_file
+        :param free_params: List(Str), dictionary keys from proj_dict whose probabilities will be optimized
+        :param prior: scipy.stats.beta, a prior on the bernoulli RVs
+        :param beta: float, regularization constant
         :return:
         '''
 
-        corpus_probs = self.read_corpus_file(corpus_file, True)
+        features = read_feature_file(feature_file)
+        corpus_probs = read_corpus_file(corpus_file, features)
 
         # create bounds
         # instead of limiting bound for fixed value, I removed it completely from the parameter
@@ -285,17 +313,15 @@ class SL2_Grammar:
                             proj_probs,
                             bounds=bounds,
                             method='L-BFGS-B',
-                            args=(free_params, corpus_probs))
+                            args=(free_params, corpus_probs, prior, beta))
 
-    def p_grammatical(self, tree: Tree, feature_dict: dict):
+    def p_grammatical(self, tree: Tree):
         '''
         :param tree: Tree to check
-        :param feature_dict: Features to project
+        :param proj_dict: Features to project
         :return: Probability tree is grammatical under this instantiation of grammar
-        Will need rewriting, must correct case where top node does not project, but need to clarify how to treat top
-        node
         '''
-        return sum([prob for proj, prob in self.projection_p(tree, feature_dict) if self.is_grammatical(*proj)])
+        return sum([prob for proj, prob in self.projection_p(tree) if self.is_grammatical(proj)])
 
     @staticmethod
     def child_product(child_projections):
@@ -310,42 +336,51 @@ class SL2_Grammar:
         # base case, return list
         if not rest:
             return first
-        projections_powerset = []
-        for r_projection in SL2_Grammar.projection_powerset(rest):
+        projections_products = []
+        for r_projection in TSL2_Grammar.child_product(rest):
             # for all the other projections in the recursive call 'projection_powerset(rest)'
             for f_projection in first:
                 # for all the projections currently being evaluated 'first'
                 # make a new projection/probability pair which is the two lists appended and their probs multiplied
-                projections_powerset.append((f_projection[0]+r_projection[0], f_projection[1]*r_projection[1]))
+                projections_products.append((f_projection[0]+r_projection[0], f_projection[1]*r_projection[1]))
         # remove 0 prob projections to prevent wasteful memory usage
-        return [(projection, prob) for projection, prob in projections_powerset if prob != 0]
+        return [(projection, prob) for projection, prob in projections_products if prob != 0]
 
 
-def read_corpus_file(corpus_file):
+def read_corpus_file(corpus_file, features):
     '''
-    :param corpus_file: string specifying location of .csv file
-    :return: list of (Tree, probability) tuples
+    :param corpus_file: file of sentence trees and probabilities
+    :param features: dictionary of labels: features
+    :return:
     '''
-    with open(corpus_file) as file:
-        reader = csv.reader(file)
-        corpus = [(row[0], row[1]) for row in reader]
+
+    with open(corpus_file) as c_file:
+        reader = csv.reader(c_file)
+        corpus = [(Tree.from_str(row[0], features), float(row[1])) for row in reader]
 
     return corpus
 
 
+def read_feature_file(feature_file):
+    '''
+    :param feature_file: location of feature_file
+    :return:
+    '''
+    with open(feature_file) as f_file:
+        reader = csv.reader(f_file)
+        features = {row[0]: row[1] for row in reader}
+
+    return features
+
+
 # Sample projection dictionaries with lexically-specific probabilities possible
 
-default_projections = defaultdict(lambda: 0)
-
-default_projections.update({
+project_dict = {
     'wh+': 1,
     'wh-': 1,
-    'C': 0
-})
-
-project_dict = defaultdict(lambda: default_projections)
-project_dict['because'] = {
-    'C': 0.4
+    'C': 0,
+    'C2': .5,
+    'T': 0
 }
 
 def check_wh(tree):
@@ -447,7 +482,7 @@ bad_tree = Tree(
                                 children = [
                                     Tree(
                                         label = 'because',
-                                        features = set(['C']),
+                                        features = set(['C2']),
                                         children = [
 
                                             Tree(
@@ -493,11 +528,11 @@ bad_tree = Tree(
         ]
     )
 
-good_projection = good_tree.project(set(['wh-', 'wh+', 'C1']))
+good_projection = good_tree.project(set(['wh-', 'wh+', 'C']))
 print(good_projection)
 print(good_projection.check_well_formed(check_wh))
 
-bad_projection = bad_tree.project(set(['wh-', 'wh+', 'C1']))
+bad_projection = bad_tree.project(set(['wh-', 'wh+', 'C']))
 print(bad_projection)
 print(bad_projection.check_well_formed(check_wh))
 
@@ -562,10 +597,12 @@ bad_tree_str = """
     )"""
 good_parsed_tree = Tree.from_str(good_tree_str, feature_dict)
 bad_parsed_tree = Tree.from_str(bad_tree_str, feature_dict)
-grammar = Grammar([check_wh], feature_dict)
+grammar = TSL2_Grammar([check_wh], project_dict)
 
 print(good_parsed_tree.project(set(['wh-', 'wh+', 'C1'])).check_well_formed(check_wh))
 print(bad_parsed_tree.project(set(['wh-', 'wh+', 'C1'])).check_well_formed(check_wh))
-print(grammar.p_grammatical(bad_tree, project_dict))
-print(grammar.p_grammatical(good_tree, project_dict))
+print(grammar.p_grammatical(bad_tree))
+print(grammar.p_grammatical(good_tree))
+
+print(grammar.projection_p(bad_tree))
 
