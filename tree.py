@@ -132,16 +132,15 @@ class Tree():
         """
         lpar = pp.Suppress('(')
         rpar = pp.Suppress(')')
-        comma = pp.Suppress(',')
-        name = pp.Word(pp.alphanums + "_")
+        name = pp.Word(pp.alphanums + "_" + "-")
         expr = pp.Forward()
 
         expr <<= (
-            pp.Group(name + lpar + rpar) | 
-            pp.Group(name + lpar + expr + pp.ZeroOrMore(comma + expr) + rpar)
+            pp.Group(lpar + name + rpar) | 
+            pp.Group(lpar + name + expr + pp.ZeroOrMore(expr) + rpar)
         )
 
-        parse = expr.parse_string(string)
+        parse = expr.parseString(string)
 
         return cls.build_tree_from_parse(parse[0], feature_dict)
 
@@ -392,217 +391,222 @@ def check_wh(tree):
     else:
         return tree.count_child_features('wh-') == 0
 
-good_tree = Tree(
-        label = 'did',
-        features = set(['C', 'wh+']),
-        children = [
-            Tree(
-                label = 'eT',
-                features = set(['T', 'nom+']),
-                children = [
-                    Tree(
-                        label = 'ev',
-                        features = set(['v']),
-                        children = [
-                            Tree(
-                                label = 'John',
-                                features = set(['D', 'nom-']),
-                            ),
-                            Tree(
-                                label = 'complain',
-                                features = set(['V']),
-                                children = [
-                                    Tree(
-                                        label = 'that',
-                                        features = set(['C']),
-                                        children = [
+treebank_str = "(C-mat-wh (T-pres (lv-tr (who) (think (that (T-past (lv-tr (D-e (Matt)) (chase (the (bus))))))))))"
+print(Tree.from_str(treebank_str, {}))
 
-                                            Tree(
-                                                label = 'eT',
-                                                features = set(['T', 'nom+']),
-                                                children = [
-                                                    Tree(
-                                                        label = 'ev',
-                                                        features = ['v'],
-                                                        children = [
-                                                            Tree(
-                                                                label = 'Mary',
-                                                                features = set(['D', 'nom-']),
-                                                            ),
-                                                            Tree(
-                                                                label = 'bought',
-                                                                features = set(['V']),
-                                                                children = [
-                                                                    Tree(
-                                                                        label = 'which',
-                                                                        features = set(['D', 'wh-']),
-                                                                        children = [
-                                                                            Tree(
-                                                                                label = 'car',
-                                                                                features = set(['N'])
-                                                                            )
-                                                                        ]
-                                                                    )
-                                                                ]
-                                                            )
-                                                        ]  
-                                                    )
-                                                ]
-                                            )
-                                        ]
-                                    )
-                                ]
-                            )
-                        ]
-                    )
-                ]
-            )
-        ]
-    )
+# We should remove all this crap and add a command-line interface
 
-bad_tree = Tree(
-        label = 'did',
-        features = set(['C', 'wh+']),
-        children = [
-            Tree(
-                label = 'eps',
-                features = set(['T', 'nom+']),
-                children = [
-                    Tree(
-                        label = 'eps',
-                        features = set(['v']),
-                        children = [
-                            Tree(
-                                label = 'John',
-                                features = set(['D', 'nom-']),
-                            ),
-                            Tree(
-                                label = 'complain',
-                                features = set(['V']),
-                                children = [
-                                    Tree(
-                                        label = 'because',
-                                        features = set(['C2']),
-                                        children = [
+# good_tree = Tree(
+#         label = 'did',
+#         features = set(['C', 'wh+']),
+#         children = [
+#             Tree(
+#                 label = 'eT',
+#                 features = set(['T', 'nom+']),
+#                 children = [
+#                     Tree(
+#                         label = 'ev',
+#                         features = set(['v']),
+#                         children = [
+#                             Tree(
+#                                 label = 'John',
+#                                 features = set(['D', 'nom-']),
+#                             ),
+#                             Tree(
+#                                 label = 'complain',
+#                                 features = set(['V']),
+#                                 children = [
+#                                     Tree(
+#                                         label = 'that',
+#                                         features = set(['C']),
+#                                         children = [
 
-                                            Tree(
-                                                label = 'eps',
-                                                features = set(['T', 'nom+']),
-                                                children = [
-                                                    Tree(
-                                                        label = 'eps',
-                                                        features = ['v'],
-                                                        children = [
-                                                            Tree(
-                                                                label = 'Mary',
-                                                                features = set(['D', 'nom-']),
-                                                            ),
-                                                            Tree(
-                                                                label = 'bought',
-                                                                features = set(['V']),
-                                                                children = [
-                                                                    Tree(
-                                                                        label = 'which',
-                                                                        features = set(['D', 'wh-']),
-                                                                        children = [
-                                                                            Tree(
-                                                                                label = 'car',
-                                                                                features = set(['N'])
-                                                                            )
-                                                                        ]
-                                                                    )
-                                                                ]
-                                                            )
-                                                        ]  
-                                                    )
-                                                ]
-                                            )
-                                        ]
-                                    )
-                                ]
-                            )
-                        ]
-                    )
-                ]
-            )
-        ]
-    )
+#                                             Tree(
+#                                                 label = 'eT',
+#                                                 features = set(['T', 'nom+']),
+#                                                 children = [
+#                                                     Tree(
+#                                                         label = 'ev',
+#                                                         features = ['v'],
+#                                                         children = [
+#                                                             Tree(
+#                                                                 label = 'Mary',
+#                                                                 features = set(['D', 'nom-']),
+#                                                             ),
+#                                                             Tree(
+#                                                                 label = 'bought',
+#                                                                 features = set(['V']),
+#                                                                 children = [
+#                                                                     Tree(
+#                                                                         label = 'which',
+#                                                                         features = set(['D', 'wh-']),
+#                                                                         children = [
+#                                                                             Tree(
+#                                                                                 label = 'car',
+#                                                                                 features = set(['N'])
+#                                                                             )
+#                                                                         ]
+#                                                                     )
+#                                                                 ]
+#                                                             )
+#                                                         ]  
+#                                                     )
+#                                                 ]
+#                                             )
+#                                         ]
+#                                     )
+#                                 ]
+#                             )
+#                         ]
+#                     )
+#                 ]
+#             )
+#         ]
+#     )
 
-good_projection = good_tree.project(set(['wh-', 'wh+', 'C']))
-print(good_projection)
-print(good_projection.check_well_formed(check_wh))
+# bad_tree = Tree(
+#         label = 'did',
+#         features = set(['C', 'wh+']),
+#         children = [
+#             Tree(
+#                 label = 'eps',
+#                 features = set(['T', 'nom+']),
+#                 children = [
+#                     Tree(
+#                         label = 'eps',
+#                         features = set(['v']),
+#                         children = [
+#                             Tree(
+#                                 label = 'John',
+#                                 features = set(['D', 'nom-']),
+#                             ),
+#                             Tree(
+#                                 label = 'complain',
+#                                 features = set(['V']),
+#                                 children = [
+#                                     Tree(
+#                                         label = 'because',
+#                                         features = set(['C2']),
+#                                         children = [
 
-bad_projection = bad_tree.project(set(['wh-', 'wh+', 'C']))
-print(bad_projection)
-print(bad_projection.check_well_formed(check_wh))
+#                                             Tree(
+#                                                 label = 'eps',
+#                                                 features = set(['T', 'nom+']),
+#                                                 children = [
+#                                                     Tree(
+#                                                         label = 'eps',
+#                                                         features = ['v'],
+#                                                         children = [
+#                                                             Tree(
+#                                                                 label = 'Mary',
+#                                                                 features = set(['D', 'nom-']),
+#                                                             ),
+#                                                             Tree(
+#                                                                 label = 'bought',
+#                                                                 features = set(['V']),
+#                                                                 children = [
+#                                                                     Tree(
+#                                                                         label = 'which',
+#                                                                         features = set(['D', 'wh-']),
+#                                                                         children = [
+#                                                                             Tree(
+#                                                                                 label = 'car',
+#                                                                                 features = set(['N'])
+#                                                                             )
+#                                                                         ]
+#                                                                     )
+#                                                                 ]
+#                                                             )
+#                                                         ]  
+#                                                     )
+#                                                 ]
+#                                             )
+#                                         ]
+#                                     )
+#                                 ]
+#                             )
+#                         ]
+#                     )
+#                 ]
+#             )
+#         ]
+#     )
 
-feature_dict = {
-    'did': set(['C', 'wh+']),
-    'eT': set(['T', 'nom+']),
-    'ev': set(['v']),
-    'John': set(['D', 'nom-']),
-    'complain': set(['V']),
-    'that': set(['C']),
-    'because': set(['C1']),
-    'Mary': set(['D', 'nom-']),
-    'bought': set(['V']),
-    'which': set(['D', 'wh-']),
-    'car': set(['N'])
-}
+# good_projection = good_tree.project(set(['wh-', 'wh+', 'C']))
+# print(good_projection)
+# print(good_projection.check_well_formed(check_wh))
 
-good_tree_str = """
-    did(
-        eT(
-            ev(
-                John(),
-                complain(
-                    that(
-                        eT(
-                            ev(
-                                Mary(),
-                                bought(
-                                    which(
-                                        car()
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    )"""
+# bad_projection = bad_tree.project(set(['wh-', 'wh+', 'C']))
+# print(bad_projection)
+# print(bad_projection.check_well_formed(check_wh))
 
-bad_tree_str = """
-    did(
-        eT(
-            ev(
-                John(),
-                complain(
-                    because(
-                        eT(
-                            ev(
-                                Mary(),
-                                bought(
-                                    which(
-                                        car()
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    )"""
-good_parsed_tree = Tree.from_str(good_tree_str, feature_dict)
-bad_parsed_tree = Tree.from_str(bad_tree_str, feature_dict)
-grammar = TSL2_Grammar([check_wh], project_dict)
+# feature_dict = {
+#     'did': set(['C', 'wh+']),
+#     'eT': set(['T', 'nom+']),
+#     'ev': set(['v']),
+#     'John': set(['D', 'nom-']),
+#     'complain': set(['V']),
+#     'that': set(['C']),
+#     'because': set(['C1']),
+#     'Mary': set(['D', 'nom-']),
+#     'bought': set(['V']),
+#     'which': set(['D', 'wh-']),
+#     'car': set(['N'])
+# }
 
-print(good_parsed_tree.project(set(['wh-', 'wh+', 'C1'])).check_well_formed(check_wh))
-print(bad_parsed_tree.project(set(['wh-', 'wh+', 'C1'])).check_well_formed(check_wh))
-print(grammar.p_grammatical(bad_tree))
-print(grammar.p_grammatical(good_tree))
+# good_tree_str = """
+#     did(
+#         eT(
+#             ev(
+#                 John(),
+#                 complain(
+#                     that(
+#                         eT(
+#                             ev(
+#                                 Mary(),
+#                                 bought(
+#                                     which(
+#                                         car()
+#                                     )
+#                                 )
+#                             )
+#                         )
+#                     )
+#                 )
+#             )
+#         )
+#     )"""
 
-print(grammar.projection_p(bad_tree))
+# bad_tree_str = """
+#     did(
+#         eT(
+#             ev(
+#                 John(),
+#                 complain(
+#                     because(
+#                         eT(
+#                             ev(
+#                                 Mary(),
+#                                 bought(
+#                                     which(
+#                                         car()
+#                                     )
+#                                 )
+#                             )
+#                         )
+#                     )
+#                 )
+#             )
+#         )
+#     )"""
+# good_parsed_tree = Tree.from_str(good_tree_str, feature_dict)
+# bad_parsed_tree = Tree.from_str(bad_tree_str, feature_dict)
+# grammar = TSL2_Grammar([check_wh], project_dict)
+
+# print(good_parsed_tree.project(set(['wh-', 'wh+', 'C1'])).check_well_formed(check_wh))
+# print(bad_parsed_tree.project(set(['wh-', 'wh+', 'C1'])).check_well_formed(check_wh))
+# print(grammar.p_grammatical(bad_tree))
+# print(grammar.p_grammatical(good_tree))
+
+# print(grammar.projection_p(bad_tree))
 
