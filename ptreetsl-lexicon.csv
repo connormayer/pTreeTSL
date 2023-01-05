@@ -1,0 +1,119 @@
+﻿symbol,form,cat,features,notes
+C-mat-decl,*e*,C,+T -C,
+that,that,C,+T -C,
+C-emb-decl,*e*,C,+T -C,
+whether,whether,C,+T -C,simplification: treating as head rather than specifier
+C-mat-wh,*e*,C,+T +wh -C,
+C-emb-wh,*e*,C,+T +wh -C,
+D-e,*e*,D-art,+N -D,
+the,the,D-art,+N -D,
+I,I,D-pro,-D,
+you,you,D-pro,-D,
+who,who,D-wh,-D -wh,
+what,what,D-wh,-D -wh,
+lv-tr,*e*,lv,+V +D -lv,
+necklace,necklace,N-comm,-N,
+bus,bus,N-comm,-N,
+television,television,N-comm,-N,
+letter,letter,N-comm,-N,
+house,house,N-comm,-N,
+movie,movie,N-comm,-N,
+cake,cake,N-comm,-N,
+detective,detective,N-comm,-N,
+police_officer,police officer,N-comm,-N,simplification: collapsed compound
+manager,manager,N-comm,-N,
+soldier,soldier,N-comm,-N,
+agent,agent,N-comm,-N,
+teacher,teacher,N-comm,-N,
+girl,girl,N-comm,-N,
+guest,guest,N-comm,-N,
+local_hero,local hero,N-comm,-N,simplification: collapsed adjectival modification
+candidate,candidate,N-comm,-N,
+soldier,soldier,N-comm,-N,
+Pope,Pope,N-comm,-N,
+musician,musician,N-comm,-N,
+director,director,N-comm,-N,
+author,author,N-comm,-N,
+lobbyist,lobbyist,N-comm,-N,
+president,president,N-comm,-N,
+millionaire,millionaire,N-comm,-N,
+terrorist,terrorist,N-comm,-N,
+priest,priest,N-comm,-N,
+orphans,orphans,N-comm,-N,
+new_playhouse,new playhouse,N-comm,-N,simplification: collapsed adjectival modification
+censors,censors,N-comm,-N,
+new_play,new play,N-comm,-N,simplification: collapsed adjectival modification
+peace_activist,peace activist,N-comm,-N,simplification: collapsed compound
+vampires,vampires,N-comm,-N,
+bribery,bribery,N-comm,-N,
+refugees,refugees,N-comm,-N,
+violent_stories,violent stories,N-comm,-N,simplification: collapsed adjectival modification
+campaign,campaign,N-comm,-N,
+gift-pobj,gift,N-pp-comp,+P -N,gift from
+speech-pobj,speech,N-pp-comp,+P -N,speech by
+meeting-pobj,meeting,N-pp-comp,+P -N,meeting with
+movie-pobj,movie,N-pp-comp,+P -N,movie about
+email-pobj,email,N-pp-comp,+P -N,email from
+picture-pobj,picture,N-pp-comp,+P -N,picture of
+flyer-pobj,flyer,N-pp-comp,+P -N,flyer from
+new_book-pobj,new book,N-pp-comp,+P -N,new book about
+rumor-pobj,rumor,N-pp-comp,+P -N,rumor about
+news_report-pobj,news report,N-pp-comp,+P -N,collapsed compound
+fundraiser-pobj,fundraiser,N-pp-comp,+P -N,fundraiser for
+joke-pobj,joke,N-pp-comp,+P -N,joke about
+magazine_article-pobj,magazine article,N-pp-comp,+P -N,"magazine article about, simplification: collapsed compound"
+new_play-pobj,new play,N-pp-comp,+P -N,"new play about, simplification: collapsed adjectival modification"
+complaints-pobj,complaints,N-pp-comp,+P -N,complains about
+Paul,Paul,N-prop,-N,
+Matt,Matt,N-prop,-N,
+Tom,Tom,N-prop,-N,
+Stacey,Stacey,N-prop,-N,
+Aaron,Aaron,N-prop,-N,
+George,George,N-prop,-N,
+Heather,Heather,N-prop,-N,
+Casey,Casey,N-prop,-N,
+from,from,P,+D -P,
+by,by,P,+D -P,
+with,with,P,+D -P,
+about,about,P,+D -P,
+of,of,P,+D -P,
+for,for,P,+D -P,
+T-pres,*e*,T,+lv -T,
+T-past,*e*,T,+lv -T,
+does,does,T,+lv -T,
+did,did,T,+lv -T,
+vote,vote,V-pp-comp,+P -V,vote for
+speak,speak,V-pp-comp,+P -V,speak to
+rely,rely,V-pp-comp,+P -V,rely on
+complain,complain,V-pp-comp,+P -V,complain about
+care,care,V-pp-comp,+P -V,care about
+think,think,V-sent-comp,+C -V,
+wonder,wonder,V-sent-comp,+C -V,
+steal,steal,V-trans,+D -V,
+chase,chase,V-trans,+D -V,
+sell,sell,V-trans,+D -V,
+write,write,V-trans,+D -V,
+buy,buy,V-trans,+D -V,
+read,read,V-trans,+D -V,
+see,see,V-trans,+D -V,
+bake,bake,V-trans,+D -V,
+meet,meet,V-trans,+D -V,
+call,call,V-trans,+D -V,
+interview,interview,V-trans,+D -V,
+research,research,V-trans,+D -V,
+respect,respect,V-trans,+D -V,
+admire,admire,V-trans,+D -V,
+offend,offend,V-trans,+D -V,
+praise,praise,V-trans,+D -V,
+support,support,V-trans,+D -V,
+capture,capture,V-trans,+D -V,
+criticize,criticize,V-trans,+D -V,
+hire,hire,V-trans,+D -V,
+develop,develop,V-trans,+D -V,
+prompt,prompt,V-trans,+D -V,
+interrupt,interrupt,V-trans,+D -V,
+delay,delay,V-trans,+D -V,
+inspire,inspire,V-trans,+D -V,
+accompany,accompany,V-trans,+D -V,
+promote,promote,V-trans,+D -V,
+cause,cause,V-trans,+D -V,

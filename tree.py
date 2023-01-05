@@ -1,4 +1,5 @@
 import pyparsing as pp
+import pandas as pd
 import random
 import csv
 from numpy.random import rand
@@ -6,6 +7,8 @@ from scipy.optimize import minimize
 from collections import defaultdict
 from dataclasses import dataclass
 import warnings
+
+KEY = "response_key.csv"
 
 @dataclass
 class Word:
@@ -284,7 +287,7 @@ class TSL2_Grammar:
 
         sse = 0
         for tree, p in corpus_probs:
-            sse += (self.p_grammatical(tree) - p)**2 + beta*prior.pdf(p)
+            sse += (self.p_grammatical(tree) - p)**2 - beta*prior.pdf(p)
 
         return sse
 
@@ -347,29 +350,40 @@ class TSL2_Grammar:
         return [(projection, prob) for projection, prob in projections_products if prob != 0]
 
 
-def read_corpus_file(corpus_file, features):
+def read_corpus_file(corpus_file, features, key=KEY):
     '''
     :param corpus_file: file of sentence trees and probabilities
     :param features: dictionary of labels: features
-    :return:
+    :param key: location of key file relating sentence IDs to subject ratings
+    :return: list of tuples contain (tree, judgment score) pairs
     '''
 
-    with open(corpus_file) as c_file:
-        reader = csv.reader(c_file)
-        corpus = [(Tree.from_str(row[0], features), float(row[1])) for row in reader]
+    with open(key, encoding="utf-8-sig") as key_file:
+        key_df = pd.read_csv(key_file, encoding="utf-8-sig")
 
-    return corpus
+    with open(corpus_file, encoding="utf-8-sig") as c_file:
+        corpus_df = pd.read_csv(c_file, encoding="utf-8-sig")
+
+    total_df = pd.merge(corpus_df, key_df, left_on="id", right_on="item")
+    total_df = total_df[['tree', 'judgment']]
+    #    reader = csv.reader(c_file)
+    #    corpus = [(Tree.from_str(row[0], features), float(row[1])) for row in reader]
+
+    return [(Tree.from_str(row['tree'], features), row['judgment']) for _, row in total_df.iterrows()]
 
 
-def read_feature_file(feature_file):
+def read_feature_file(feature_file, simple=True):
     '''
     :param feature_file: location of feature_file
     :return:
     '''
-    with open(feature_file) as f_file:
-        reader = csv.reader(f_file)
-        features = {row[0]: row[1] for row in reader}
+    with open(feature_file, encoding="utf-8-sig") as f_file:
+        feature_df = pd.read_csv(f_file, encoding="utf-8-sig")
+    if simple:
+        features = {row['symbol']: {row['symbol']} for _, row in feature_df.iterrows()}
+        return features
 
+    features = {row['symbol']: set(row['features'].split(' ')) for _, row in feature_df.iterrows()}
     return features
 
 
